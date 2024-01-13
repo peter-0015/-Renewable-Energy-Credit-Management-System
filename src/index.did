@@ -1,0 +1,56 @@
+type Client = record {
+  id : text;
+  updated_at : opt nat64;
+  name : text;
+  created_date : nat64;
+};
+type Contract = record {
+  id : text;
+  updated_at : opt nat64;
+  quantity : text;
+  client_id : text;
+  price : text;
+  producer_id : text;
+  created_date : nat64;
+};
+type CreditOrder = record {
+  id : text;
+  updated_at : opt nat64;
+  bid_price : text;
+  is_fulfilled : bool;
+  quantity : text;
+  client_id : text;
+  created_date : nat64;
+};
+type CreditResponse = record { msg : text; total_price : float64 };
+type Producer = record {
+  id : text;
+  updated_at : opt nat64;
+  name : text;
+  renewable_energy_supply : text;
+  created_date : nat64;
+};
+type _AzleResult = variant { Ok : vec Client; Err : text };
+type _AzleResult_1 = variant { Ok : vec Contract; Err : text };
+type _AzleResult_2 = variant { Ok : vec CreditOrder; Err : text };
+type _AzleResult_3 = variant { Ok : vec Producer; Err : text };
+service : () -> {
+  addClient : (text) -> (text);
+  addProducer : (text, text) -> (text);
+  deleteClient : (text) -> (text);
+  deleteContract : (text) -> (text);
+  deleteCreditOrder : (text) -> (text);
+  deleteProducer : (text) -> (text);
+  fulfillCreditOrder : (text) -> (text);
+  getClients : () -> (_AzleResult) query;
+  getContracts : () -> (_AzleResult_1) query;
+  getCreditOrders : () -> (_AzleResult_2) query;
+  getProducers : () -> (_AzleResult_3) query;
+  initRenewableEnergyCreditSystem : () -> (text);
+  initiateContract : (text, text, text, text) -> (text);
+  placeCreditOrder : (text, text, text) -> (CreditResponse);
+  updateClient : (text, text) -> (text);
+  updateContract : (text, text, text) -> (text);
+  updateCreditOrder : (text, text, text) -> (text);
+  updateProducer : (text, text, text) -> (text);
+}
