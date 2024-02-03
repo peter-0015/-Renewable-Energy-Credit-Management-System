@@ -348,6 +348,236 @@ export function deleteCreditOrder(id: string): string {
   return "Credit order not found";
 }
 
+$query;
+// Function to calculate the total renewable energy supplied by all producers
+export function calculateTotalRenewableEnergy(): string {
+  const producers = producerStorage.values();
+  if (producers.length === 0) {
+    return "No producers found";
+  }
+
+  const totalRenewableEnergy = producers.reduce((total, producer) => {
+    return total + parseFloat(producer.renewable_energy_supply);
+  }, 0);
+
+  return `Total Renewable Energy Supply: ${totalRenewableEnergy}`;
+}
+
+$query;
+// Function to get a list of unfulfilled credit orders
+export function getUnfulfilledCreditOrders(): Result<Vec<CreditOrder>, string> {
+  const unfulfilledOrders = creditOrderStorage.values().filter(order => !order.is_fulfilled);
+  
+  if (unfulfilledOrders.length === 0) {
+    return Result.Err("No unfulfilled credit orders found");
+  }
+
+  return Result.Ok(unfulfilledOrders);
+}
+
+$query;
+// Function to get the total revenue generated from fulfilled credit orders
+export function getTotalRevenue(): Result<number, string> {
+  const fulfilledOrders = creditOrderStorage.values().filter(order => order.is_fulfilled);
+  
+  if (fulfilledOrders.length === 0) {
+    return Result.Err("No fulfilled credit orders found");
+  }
+
+  const totalRevenue = fulfilledOrders.reduce((total, order) => {
+    return total + (parseFloat(order.bid_price) * parseFloat(order.quantity));
+  }, 0);
+
+  return Result.Ok(totalRevenue);
+}
+
+$query;
+// Function to get the list of contracts for a specific client
+export function getClientContracts(client_id: string): Result<Vec<Contract>, string> {
+  const clientContracts = contractStorage.values().filter(contract => contract.client_id === client_id);
+  
+  if (clientContracts.length === 0) {
+    return Result.Err("No contracts found for the specified client");
+  }
+
+  return Result.Ok(clientContracts);
+}
+
+// Function to update credit order fulfillment status based on renewable energy supply
+$update;
+export function updateCreditOrderFulfillment(): string {
+  const producers = producerStorage.values();
+  const unfulfilledOrders = creditOrderStorage.values().filter(order => !order.is_fulfilled);
+
+  if (producers.length === 0 || unfulfilledOrders.length === 0) {
+    return "No producers or unfulfilled credit orders found";
+  }
+
+  // Assume a simple allocation strategy: fulfill orders as long as there is enough renewable energy supply
+  for (const producer of producers) {
+    let remainingEnergy = parseFloat(producer.renewable_energy_supply);
+
+    for (const order of unfulfilledOrders) {
+      const requiredEnergy = parseFloat(order.quantity);
+
+      if (remainingEnergy >= requiredEnergy) {
+        order.is_fulfilled = true;
+        order.updated_at = Opt.Some(ic.time());
+        creditOrderStorage.insert(order.id, order);
+
+        remainingEnergy -= requiredEnergy;
+      }
+    }
+  }
+
+  return "Credit order fulfillment updated based on renewable energy supply";
+}
+
+type RenewableEnergySource = Record<{
+  id: string;
+  source_name: string;
+  capacity: string;
+  created_date: nat64;
+  updated_at: Opt<nat64>;
+}>;
+
+const energySourceStorage = new StableBTreeMap<string, RenewableEnergySource>(4, 44, 512);
+
+$update;
+export function addRenewableEnergySource(source_name: string, capacity: string): string {
+  const energySource = {
+    id: uuidv4(),
+    source_name: source_name,
+    capacity: capacity,
+    created_date: ic.time(),
+    updated_at: Opt.None,
+  };
+  energySourceStorage.insert(energySource.id, energySource);
+  return energySource.id;
+}
+
+$query;
+// Function to get information about renewable energy sources
+export function getRenewableEnergySources(): Result<Vec<RenewableEnergySource>, string> {
+  const energySources = energySourceStorage.values();
+  if (energySources.length === 0) {
+    return Result.Err("No renewable energy sources found");
+  }
+  return Result.Ok(energySources);
+}
+
+// Function to get information about a specific renewable energy source by ID
+$query;
+export function getRenewableEnergySourceById(id: string): Result<RenewableEnergySource, string> {
+  const energySource = match(energySourceStorage.get(id), {
+    Some: (source) => source,
+    None: () => ({} as unknown as RenewableEnergySource),
+  });
+
+  if (energySource.id) {
+    return Result.Ok(energySource);
+  }
+
+  return Result.Err("Renewable energy source not found");
+}
+
+$update;
+// Function to update information about a renewable energy source
+export function updateRenewableEnergySource(id: string, source_name: string, capacity: string): string {
+  const existingSource = match(energySourceStorage.get(id), {
+    Some: (source) => source,
+    None: () => ({} as unknown as RenewableEnergySource),
+  });
+
+  if (existingSource.id) {
+    existingSource.source_name = source_name;
+    existingSource.capacity = capacity;
+    existingSource.updated_at = Opt.Some(ic.time());
+    energySourceStorage.insert(existingSource.id, existingSource);
+    return existingSource.id;
+  }
+
+  return "Renewable energy source not found";
+}
+
+$update;
+// Function to delete a renewable energy source
+export function deleteRenewableEnergySource(id: string): string {
+  const existingSource = match(energySourceStorage.get(id), {
+    Some: (source) => source,
+    None: () => ({} as unknown as RenewableEnergySource),
+  });
+
+  if (existingSource.id) {
+    energySourceStorage.remove(id);
+    return `Renewable energy source with ID: ${id} removed successfully`;
+  }
+
+  return "Renewable energy source not found";
+}
+
+// Function to transfer renewable energy credits from one client to another
+$update;
+export function transferCredits(fromClientID: string, toClientID: string, quantity: string): string {
+  const fromClient = match(clientStorage.get(fromClientID), {
+    Some: (client) => client,
+    None: () => ({} as unknown as Client),
+  });
+
+  const toClient = match(clientStorage.get(toClientID), {
+    Some: (client) => client,
+    None: () => ({} as unknown as Client),
+  });
+
+  if (!fromClient.id || !toClient.id) {
+    return "Invalid client IDs";
+  }
+
+  const transferQuantity = parseFloat(quantity);
+  if (isNaN(transferQuantity) || transferQuantity <= 0) {
+    return "Invalid quantity for credit transfer";
+  }
+
+  const fromClientOrders = creditOrderStorage.values().filter(order => order.client_id === fromClientID && order.is_fulfilled);
+  const totalFulfilledQuantity = fromClientOrders.reduce((total, order) => total + parseFloat(order.quantity), 0);
+
+  if (totalFulfilledQuantity < transferQuantity) {
+    return "Insufficient fulfilled credits for transfer";
+  }
+
+  // Deduct transferred quantity from fulfilled orders of the 'from' client
+  let remainingTransferQuantity = transferQuantity;
+  for (const order of fromClientOrders) {
+    const orderQuantity = parseFloat(order.quantity);
+    if (orderQuantity <= remainingTransferQuantity) {
+      order.is_fulfilled = false;
+      order.updated_at = Opt.Some(ic.time());
+      creditOrderStorage.insert(order.id, order);
+      remainingTransferQuantity -= orderQuantity;
+    } else {
+      order.quantity = (orderQuantity - remainingTransferQuantity).toString();
+      order.updated_at = Opt.Some(ic.time());
+      creditOrderStorage.insert(order.id, order);
+      remainingTransferQuantity = 0;
+      break;
+    }
+  }
+
+  // Create a new credit order for the 'to' client
+  const newCreditOrder = {
+    id: uuidv4(),
+    client_id: toClientID,
+    quantity: quantity,
+    bid_price: "0", // Set bid price to 0 for transferred credits
+    is_fulfilled: true,
+    created_date: ic.time(),
+    updated_at: Opt.Some(ic.time()),
+  };
+  creditOrderStorage.insert(newCreditOrder.id, newCreditOrder);
+
+  return `Successfully transferred ${quantity} renewable energy credits from ${fromClient.name} to ${toClient.name}`;
+}
+
 // Mocking the 'crypto' object for testing purposes
 globalThis.crypto = {
   // @ts-ignore

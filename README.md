@@ -51,6 +51,8 @@ The Renewable Energy Credit Management System is designed to facilitate the exch
      - `msg`: A message providing information about the status of the credit order.
      - `total_price`: The total price of the credit order.
 
+6. **RenewableEnergySource**: Represents a renewable energy source with properties like `id`, `source_name`, `capacity`, `created_date`, and `updated_at`.
+
 ### Operations
 
 The system provides the following operations:
@@ -63,6 +65,11 @@ The system provides the following operations:
    - `getClients`: Retrieves information about all clients.
    - `getContracts`: Retrieves information about all contracts.
    - `getCreditOrders`: Retrieves information about all credit orders.
+   - `getRenewableEnergySources`: Retrieves information about all renewable energy sources.
+   - `getRenewableEnergySourceById`: Retrieves information about a specific renewable energy source by ID.
+   - `getUnfulfilledCreditOrders`: Retrieves a list of unfulfilled credit orders.
+   - `getTotalRevenue`: Retrieves the total revenue generated from fulfilled credit orders.
+   - `getClientContracts`: Retrieves the list of contracts for a specific client.
 
 3. **Update Operations**:
    - `addProducer`: Adds a new producer to the system.
@@ -78,33 +85,38 @@ The system provides the following operations:
    - `deleteClient`: Deletes a client from the system.
    - `deleteContract`: Deletes a contract from the system.
    - `deleteCreditOrder`: Deletes a credit order from the system.
+   - `addRenewableEnergySource`: Adds a new renewable energy source.
+   - `updateRenewableEnergySource`: Updates information about a renewable energy source.
+   - `deleteRenewableEnergySource`: Deletes a renewable energy source from the system.
+   - `transferCredits`: Transfers renewable energy credits from one client to another.
+   - `updateCreditOrderFulfillment`: Updates credit order fulfillment based on renewable energy supply.
 
 4. **Mocking for Testing**:
    - The code includes mocking of the 'crypto' object for testing purposes.
 
-## Installation
+### Installation
 
 1. Clone the repository
 
    ```bash
-    git clone https://github.com/peter-0015/Renewable-Energy-Credit-Management-System.git
-    cd Renewable-Energy-Credit-Management-System
-    ```
+   git clone https://github.com/peter-0015/Renewable-Energy-Credit-Management-System.git
+   cd Renewable-Energy-Credit-Management-System
+   ```
 
 2. Install dependencies
 
-    ```bash
-    npm install
-    ```
+   ```bash
+   npm install
+   ```
 
 3. Start the IC local development environment
 
-    ```bash
-    dfx start --background --clean
-    ```
+   ```bash
+   dfx start --background --clean
+   ```
 
 4. Deploy the canisters to the local development environment
 
-    ```bash
-    dfx deploy
-    ```
+   ```bash
+   dfx deploy
+   ```
